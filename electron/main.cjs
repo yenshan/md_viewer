@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, screen } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { readDocument, isMarkdown } = require('./library.cjs');
+const { createWindowState } = require('./window-state.cjs');
 const customUserData = app.commandLine.getSwitchValue('user-data-dir');
 if (customUserData) app.setPath('userData', path.resolve(customUserData));
 let window;
@@ -106,9 +107,11 @@ app.whenReady().then(async () => {
     const url = new URL(href);
     if (['https:', 'http:', 'mailto:'].includes(url.protocol)) await shell.openExternal(url.href);
   });
+  const windowState = createWindowState(path.join(app.getPath('userData'), 'window-state.json'), screen);
   createWindow = function () {
     rendererReady = false;
-    window = new BrowserWindow({ width: 1280, height: 860, minWidth: 800, minHeight: 560, title: 'Folio', backgroundColor: '#faf9f6', titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 20, y: 20 }, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+    window = new BrowserWindow({ ...windowState.options(), title: 'Folio', backgroundColor: '#faf9f6', titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 20, y: 20 }, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+    windowState.track(window);
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     window.webContents.on('will-navigate', event => event.preventDefault());
     window.webContents.on('did-start-loading', () => { rendererReady = false; });

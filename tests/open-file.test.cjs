@@ -20,12 +20,15 @@ async function harness(t) {
   const handlers = new Map();
   const windows = [];
   class Window extends EventEmitter {
-    constructor() {
-      super(); this.webContents = new EventEmitter(); this.messages = [];
+    constructor(options) {
+      super(); this.bounds = options; this.webContents = new EventEmitter(); this.messages = [];
       this.webContents.setWindowOpenHandler = () => {};
       this.webContents.send = (channel, data) => { this.messages.push({ channel, data }); };
       this.closed = false; windows.push(this);
     }
+    getNormalBounds() { const { x, y, width, height } = this.bounds; return { x, y, width, height }; }
+    isMaximized() { return false; }
+    isFullScreen() { return false; }
     isDestroyed() { return this.closed; }
     isMinimized() { return true; }
     restore() { this.wasRestored = true; }
@@ -36,9 +39,9 @@ async function harness(t) {
     close() { this.closed = true; this.emit('closed'); }
     static getAllWindows() { return windows.filter(window => !window.closed); }
   }
-  const electron = { app, BrowserWindow: Window, ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) }, Menu: { buildFromTemplate: x => x, setApplicationMenu: () => {} }, dialog: { showErrorBox: (_, message) => assert.fail(message) }, shell: {} };
+  const electron = { screen: { getPrimaryDisplay: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }), getAllDisplays() { return [this.getPrimaryDisplay()]; } }, app, BrowserWindow: Window, ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) }, Menu: { buildFromTemplate: x => x, setApplicationMenu: () => {} }, dialog: { showErrorBox: (_, message) => assert.fail(message) }, shell: {} };
   const source = await fs.readFile(path.resolve('electron/main.cjs'), 'utf8');
-  vm.runInNewContext(source, { require: name => name === 'electron' ? electron : name === './library.cjs' ? require('../electron/library.cjs') : require(name), __dirname: path.resolve('electron'), process, console });
+  vm.runInNewContext(source, { require: name => name === 'electron' ? electron : name.startsWith('./') ? require('../electron/' + name.slice(2)) : require(name), __dirname: path.resolve('electron'), process, console });
   const open = file => { let prevented = false; app.emit('open-file', { preventDefault: () => { prevented = true; } }, file); assert.ok(prevented); };
   const waitFor = async predicate => { for (let count = 0; count < 200; count++) { if (predicate()) return; await new Promise(resolve => setTimeout(resolve, 5)); } assert.fail('Timed out'); };
   const start = async () => { finishReady(); await waitFor(() => windows.length > 0); };

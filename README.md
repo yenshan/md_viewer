@@ -1,5 +1,7 @@
 # Folio — Markdown Viewer
 
+<img src="build/icon.png" alt="Folioのアイコン" width="96" height="96">
+
 Electron + Reactで作った、シンプルなMarkdownビューアーです。
 
 異なるフォルダーにあるMarkdownファイルを、移動やコピーをせずにひとつのサイドバーで管理できます。レンダリングされたプレビューと、元のMarkdownテキストを切り替えて読むことができます。
@@ -133,7 +135,8 @@ $$
 - 外部HTTPS画像の表示にはネットワーク接続を使用します。
 - 外部のHTTP / HTTPSリンクは標準ブラウザーで開き、メールリンクはOSの既定アプリに渡します。
 - ローカルファイルへのリンクは直接開きません。「ファイルを追加」から選択してください。
-- Markdown中のHTML・スクリプトは実行しません。
+- Markdown内のHTMLタグ（`<br>`、`<div>`、`<details>` / `<summary>`、`<table>`、`<sup>` / `<sub>`など）を表示できます。`rehype-raw` で解析し、`rehype-sanitize` で許可されたタグ・属性だけを残します。
+- スクリプト、イベントハンドラー、インラインスタイル、iframeなどは除去します。コードブロック内のHTMLはコードのまま表示します。
 
 ## 保存するデータ
 
@@ -172,6 +175,7 @@ Electronの画面操作テストには、GUIアプリの起動を許可する環
 | 開発・ビルド | Vite / electron-builder |
 | Markdown | react-markdown |
 | 表・チェックリストなどのGFM | remark-gfm |
+| 埋め込みHTMLの解析・サニタイズ | rehype-raw / rehype-sanitize |
 | コードの色分け | rehype-highlight / Highlight.js |
 | 数式 | remark-math / rehype-katex / KaTeX |
 | 画面操作テスト | Playwright |
